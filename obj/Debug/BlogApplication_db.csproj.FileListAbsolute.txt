@@ -1,0 +1,6 @@
+c:\users\gen bodmas\documents\visual studio 2015\Projects\BlogApplication_db\BlogApplication_db\bin\Debug\BlogApplication_db.exe.config
+C:\Users\Gen Bodmas\Documents\Visual Studio 2015\Projects\BlogApplication_db\BlogApplication_db\obj\Debug\BlogApplication_db.csprojResolveAssemblyReference.cache
+C:\Users\Gen Bodmas\Documents\Visual Studio 2015\Projects\BlogApplication_db\BlogApplication_db\bin\Debug\BlogApplication_db.exe
+C:\Users\Gen Bodmas\Documents\Visual Studio 2015\Projects\BlogApplication_db\BlogApplication_db\bin\Debug\BlogApplication_db.pdb
+C:\Users\Gen Bodmas\Documents\Visual Studio 2015\Projects\BlogApplication_db\BlogApplication_db\obj\Debug\BlogApplication_db.exe
+C:\Users\Gen Bodmas\Documents\Visual Studio 2015\Projects\BlogApplication_db\BlogApplication_db\obj\Debug\BlogApplication_db.pdb
