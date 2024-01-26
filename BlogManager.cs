@@ -420,12 +420,12 @@ namespace BlogApplication_db
 
                     if (rowsAffected > 0)
                     {
-                        // Registration successful, return the user object
+                        // Registration successful
                         return newUser;
                     }
                     else
                     {
-                        // Registration failed, return null or handle accordingly
+                        // Registration failed, do null
                         return null;
                     }
                 }
