@@ -12,15 +12,18 @@ namespace BlogApplication_db
     {
         private const string ConnectionString = "Data Source=GENERALBODMAS\\SQLEXPRESS;Initial Catalog=Blog_App;Integrated Security=True";
 
+        private user loggedInUser;
+
         public void DisplayAllBlog()
         {
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM blogs";
-
+                string query = "SELECT * FROM blogs WHERE UserName = @UserName";
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
+
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.HasRows)
@@ -32,7 +35,8 @@ namespace BlogApplication_db
                                 {
                                     ID = reader.GetInt32(0),
                                     Name = reader.GetString(1),
-                                    Desc = reader.GetString(2)
+                                    Desc = reader.GetString(2),
+                                    UserName = reader.GetString(3)
                                 };
                                 blog.Display();
                             }
@@ -51,10 +55,11 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM posts";
-
+                string query = "SELECT * FROM posts WHERE UserName = @UserName";
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
+
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.HasRows)
@@ -68,7 +73,8 @@ namespace BlogApplication_db
                                     BlogID = reader.GetInt32(1),
                                     Date = reader.GetDateTime(2),
                                     Title = reader.GetString(3),
-                                    Content = reader.GetString(4)
+                                    Content = reader.GetString(4),
+                                    UserName = reader.GetString(5)
                                 };
                                 post.Display();
                             }
@@ -82,7 +88,6 @@ namespace BlogApplication_db
             }
         }
 
-        // Other methods for creating, updating, and deleting blogs and posts from the database.
 
         public void CreateNewBlog()
         {
@@ -95,12 +100,13 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO blogs (Name, Descr) VALUES (@Name, @Desc)";
+                string query = "INSERT INTO blogs (Name, Descr, UserName) VALUES (@Name, @Desc, @UserName)";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@Name", title);
                     command.Parameters.AddWithValue("@Desc", desc);
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     command.ExecuteNonQuery();
 
@@ -131,19 +137,13 @@ namespace BlogApplication_db
             Console.WriteLine("Enter post Content: ");
             string content = Console.ReadLine();
 
-            Console.WriteLine("Enter Date of post (yyyy-mm-dd): ");
-            string dateInput = Console.ReadLine();
-            DateTime date;
-            if (!DateTime.TryParse(dateInput, out date))
-            {
-                Console.WriteLine("Invalid input for Date. Post creation failed.");
-                return;
-            }
+            DateTime date = DateTime.Now;
 
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO posts (BlogID, Date, Title, Content) VALUES (@BlogID, @Date, @Title, @Content)";
+                string query = "INSERT INTO posts (BlogID, Date, Title, Content, UserName) " +
+                               "VALUES (@BlogID, @Date, @Title, @Content, @UserName)";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
@@ -151,6 +151,7 @@ namespace BlogApplication_db
                     command.Parameters.AddWithValue("@Date", date);
                     command.Parameters.AddWithValue("@Title", title);
                     command.Parameters.AddWithValue("@Content", content);
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     command.ExecuteNonQuery();
 
@@ -186,12 +187,13 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "DELETE FROM posts WHERE ID = @PostID AND BlogID = @BlogID";
+                string query = "DELETE FROM posts WHERE ID = @PostID AND BlogID = @BlogID AND UserName = @UserName";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@PostID", postId);
                     command.Parameters.AddWithValue("@BlogID", blogId);
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     int rowsAffected = command.ExecuteNonQuery();
 
@@ -201,7 +203,7 @@ namespace BlogApplication_db
                     }
                     else
                     {
-                        Console.WriteLine("Post not found or not associated with the specified blog.");
+                        Console.WriteLine("Post not found or not associated with the specified blog or user.");
                     }
                 }
             }
@@ -227,11 +229,12 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM blogs WHERE ID = @BlogID";
+                string query = "SELECT * FROM blogs WHERE ID = @BlogID AND UserName = @UserName";
 
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@BlogID", blogId);
+                    command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
@@ -356,6 +359,82 @@ namespace BlogApplication_db
                     command.ExecuteNonQuery();
                 }
             }
+        }
+
+
+        // USER AUTHENTICAtiON
+
+
+        public bool AuthenticateUser(string identifier, bool isEmail = false)
+        {
+            using (SqlConnection connection = new SqlConnection(ConnectionString))
+            {
+                connection.Open();
+
+                string columnName = isEmail ? "Email" : "Username";
+                string query = $"SELECT * FROM users WHERE {columnName} = @Identifier";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Identifier", identifier);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.HasRows)
+                        {
+                            reader.Read();
+                            loggedInUser = new user
+                            {
+                                ID = reader.GetInt32(0),
+                                Username = reader.GetString(1),
+                                Email = reader.GetString(2),
+                                Phone = reader.GetString(3),
+                                FirstName = reader.GetString(4),
+                                LastName = reader.GetString(5)
+                            };
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public user RegisterUser(user newUser)
+        {
+            using (SqlConnection connection = new SqlConnection(ConnectionString))
+            {
+                connection.Open();
+                string query = "INSERT INTO users (Username, Email, Phone, FirstName, LastName) " +
+                                "VALUES (@Username, @Email, @Phone, @FirstName, @LastName)";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@Username", newUser.Username);
+                    command.Parameters.AddWithValue("@Email", newUser.Email);
+                    command.Parameters.AddWithValue("@Phone", newUser.Phone);
+                    command.Parameters.AddWithValue("@FirstName", newUser.FirstName);
+                    command.Parameters.AddWithValue("@LastName", newUser.LastName);
+
+                    int rowsAffected = command.ExecuteNonQuery();
+
+                    if (rowsAffected > 0)
+                    {
+                        // Registration successful, return the user object
+                        return newUser;
+                    }
+                    else
+                    {
+                        // Registration failed, return null or handle accordingly
+                        return null;
+                    }
+                }
+            }
+        }
+
+        public user LoggedInUser
+        {
+            get { return loggedInUser; }
         }
     }
 }

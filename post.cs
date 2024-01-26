@@ -1,18 +1,20 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace BlogApplication_db
 {
-    class post
+    public class Post
     {
-        public int ID { get; set; }
         public int BlogID { get; set; }
-        public DateTime Date { get; set; }
-        public string Title { get; set; }
         public string Content { get; set; }
+        public DateTime Date { get; set; }
+        public int ID { get; set; }
+        public string Title { get; set; }
+
+        public string UserName { get; set; }
+
+        public void Display()
+        {
+            Console.WriteLine($"Id: {ID}, Blog ID: {BlogID}, Post Date: {Date}, Post Title: {Title}, Content: {Content}");
+        }
     }
 }
-        
