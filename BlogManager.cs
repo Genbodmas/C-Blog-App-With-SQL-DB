@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Data.SqlClient;
+using System.Data;
 
 namespace BlogApplication_db
 {
@@ -13,15 +14,18 @@ namespace BlogApplication_db
         private const string ConnectionString = "Data Source=GENERALBODMAS\\SQLEXPRESS;Initial Catalog=Blog_App;Integrated Security=True";
 
         private user loggedInUser;
+        private Blog SelectedBlog;
 
         public void DisplayAllBlog()
         {
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM blogs WHERE UserName = @UserName";
-                using (SqlCommand command = new SqlCommand(query, connection))
+                //string query = "SELECT * FROM blogs WHERE UserName = @UserName";
+
+                using (SqlCommand command = new SqlCommand("GetAllBlogs", connection))
                 {
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     using (SqlDataReader reader = command.ExecuteReader())
@@ -52,19 +56,29 @@ namespace BlogApplication_db
 
         public void DisplayAllPost()
         {
+            if (SelectedBlog == null)
+            {
+                Console.WriteLine("No blog selected. Please select a blog first.");
+                return;
+            }
+
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "SELECT * FROM posts WHERE UserName = @UserName";
-                using (SqlCommand command = new SqlCommand(query, connection))
+
+                //string query = "SELECT * FROM posts WHERE UserName = @UserName AND BlogID = @BlogID";
+
+                using (SqlCommand command = new SqlCommand("DisplayAllPosts", connection))
                 {
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
+                    command.Parameters.AddWithValue("@BlogID", SelectedBlog.ID);
 
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.HasRows)
                         {
-                            Console.WriteLine("All posts: ");
+                            Console.WriteLine($"All posts for '{SelectedBlog.Name}': ");
                             while (reader.Read())
                             {
                                 var post = new Post
@@ -81,7 +95,7 @@ namespace BlogApplication_db
                         }
                         else
                         {
-                            Console.WriteLine("No posts found");
+                            Console.WriteLine($"No posts found for '{SelectedBlog.Name}'.");
                         }
                     }
                 }
@@ -100,10 +114,11 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO blogs (Name, Descr, UserName) VALUES (@Name, @Desc, @UserName)";
+                //string query = "INSERT INTO blogs (Name, Descr, UserName) VALUES (@Name, @Desc, @UserName)";
 
-                using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlCommand command = new SqlCommand("CreateNewBlog", connection))
                 {
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@Name", title);
                     command.Parameters.AddWithValue("@Desc", desc);
                     command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
@@ -117,19 +132,14 @@ namespace BlogApplication_db
 
         public void CreateNewPost()
         {
-            Console.WriteLine("Enter the BlogId the post belongs to");
-            int blogId;
-            if (!int.TryParse(Console.ReadLine(), out blogId))
+            if (SelectedBlog == null)
             {
-                Console.WriteLine("Invalid input for BlogId. Post creation failed.");
+                Console.WriteLine("No blog selected. Please select a blog first.");
                 return;
             }
 
-            if (!BlogExists(blogId))
-            {
-                Console.WriteLine($"Blog with ID {blogId} not found. Post creation failed.");
-                return;
-            }
+            // Use the ID of the selected blog
+            int blogId = SelectedBlog.ID;
 
             Console.WriteLine("Enter Title of post: ");
             string title = Console.ReadLine();
@@ -142,11 +152,12 @@ namespace BlogApplication_db
             using (SqlConnection connection = new SqlConnection(ConnectionString))
             {
                 connection.Open();
-                string query = "INSERT INTO posts (BlogID, Date, Title, Content, UserName) " +
-                               "VALUES (@BlogID, @Date, @Title, @Content, @UserName)";
+                //string query = "INSERT INTO posts (BlogID, Date, Title, Content, UserName) " +
+                //               "VALUES (@BlogID, @Date, @Title, @Content, @UserName)";
 
-                using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlCommand command = new SqlCommand("CreateNewPost", connection))
                 {
+                    command.CommandType = CommandType.StoredProcedure;
                     command.Parameters.AddWithValue("@BlogID", blogId);
                     command.Parameters.AddWithValue("@Date", date);
                     command.Parameters.AddWithValue("@Title", title);
@@ -162,21 +173,13 @@ namespace BlogApplication_db
 
         public void DeletePost()
         {
-            Console.WriteLine("Select the BlogID to delete from");
-            int blogId;
-            if (!int.TryParse(Console.ReadLine(), out blogId))
+            if (SelectedBlog == null)
             {
-                Console.WriteLine("Invalid input for BlogId. Try Again.");
+                Console.WriteLine("No blog selected. Please select a blog first.");
                 return;
             }
 
-            if (!BlogExists(blogId))
-            {
-                Console.WriteLine($"Blog with ID {blogId} not found. Post deletion failed.");
-                return;
-            }
-
-            Console.WriteLine($"Select the Id of the post to delete from blog {blogId} ");
+            Console.WriteLine($"Select the Id of the post to delete from blog '{SelectedBlog.Name}' ");
             int postId;
             if (!int.TryParse(Console.ReadLine(), out postId))
             {
@@ -192,7 +195,7 @@ namespace BlogApplication_db
                 using (SqlCommand command = new SqlCommand(query, connection))
                 {
                     command.Parameters.AddWithValue("@PostID", postId);
-                    command.Parameters.AddWithValue("@BlogID", blogId);
+                    command.Parameters.AddWithValue("@BlogID", SelectedBlog.ID);
                     command.Parameters.AddWithValue("@UserName", loggedInUser.Username);
 
                     int rowsAffected = command.ExecuteNonQuery();
@@ -436,6 +439,101 @@ namespace BlogApplication_db
         {
             get { return loggedInUser; }
         }
+
+
+        // Blog actions
+
+        public void SelectBlog()
+        {
+            Console.WriteLine("Enter the ID of the Blog you want to select:");
+            int selectedBlogId;
+            if (int.TryParse(Console.ReadLine(), out selectedBlogId))
+            {
+                if (BlogExists(selectedBlogId))
+                {
+                    SelectedBlog = GetBlogById(selectedBlogId);
+                    Console.WriteLine($"Selected Blog: {SelectedBlog.Name}");
+                    //SelectedBlog.Display();
+                }
+                else
+                {
+                    Console.WriteLine($"Blog with ID {selectedBlogId} not found.");
+                }
+            }
+            else
+            {
+                Console.WriteLine("Invalid input for Blog ID.");
+            }
+        }
+
+        private Blog GetBlogById(int blogId)
+        {
+            using (SqlConnection connection = new SqlConnection(ConnectionString))
+            {
+                connection.Open();
+                string query = "SELECT * FROM blogs WHERE ID = @BlogID";
+
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    command.Parameters.AddWithValue("@BlogID", blogId);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return new Blog
+                            {
+                                ID = reader.GetInt32(0),
+                                Name = reader.GetString(1),
+                                Desc = reader.GetString(2)
+                            };
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public void PerformBlogActions()
+        {
+            while (true)
+            {
+                Console.WriteLine();
+                Console.WriteLine($"Select Actions for Blog: {SelectedBlog.Name}");
+                Console.WriteLine("1: Display all posts");
+                Console.WriteLine("2: Create new post");
+                Console.WriteLine("3: Delete a post");
+                Console.WriteLine("4: Go back to main menu");
+                Console.WriteLine();
+
+                Console.Write("Enter your choice: ");
+                string blogActionChoice = Console.ReadLine();
+
+                switch (blogActionChoice)
+                {
+                    case "1":
+                        DisplayAllPost();
+                        break;
+
+                    case "2":
+                        CreateNewPost();
+                        break;
+
+                    case "3":
+                        DeletePost();
+                        break;
+
+                    case "4":
+                        return; // Go back to the main menu
+
+                    default:
+                        Console.WriteLine("Invalid choice. Please try again.");
+                        break;
+                }
+            }
+        }
     }
 }
+
 

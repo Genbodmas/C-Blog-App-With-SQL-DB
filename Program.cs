@@ -25,12 +25,9 @@ namespace BlogApplication_db
                 {
                     Console.WriteLine($"Welcome, {blogManager.LoggedInUser.FirstName}!");
                     Console.WriteLine("4: Display all Blogs");
-                    Console.WriteLine("5: Display all Posts");
-                    Console.WriteLine("6: Create new Blog");
-                    Console.WriteLine("7: Create new Post");
-                    Console.WriteLine("8: Delete a Post");
-                    Console.WriteLine("9: Manage Blog");
-                    Console.WriteLine("10: Logout");
+                    Console.WriteLine("5: Create new Blog");
+                    Console.WriteLine("6: Manage Blog");
+                    Console.WriteLine("7: Logout");
                 }
 
                 Console.WriteLine();
@@ -71,7 +68,7 @@ namespace BlogApplication_db
                                 {
                                     Console.WriteLine($"User with email '{email}' not found.");
 
-                                    // Prompt user to register
+                                    // if email dont work, ask user to register
                                     Console.WriteLine("User not found. Do you want to register? (yes/no)");
                                     string registerChoice = Console.ReadLine().ToLower();
 
@@ -157,29 +154,35 @@ namespace BlogApplication_db
 
                     case "4":
                         blogManager.DisplayAllBlog();
+                        blogManager.SelectBlog();
+                        blogManager.PerformBlogActions();
                         break;
 
                     case "5":
-                        blogManager.DisplayAllPost();
-                        break;
-
-                    case "6":
                         blogManager.CreateNewBlog();
                         break;
 
-                    case "7":
-                        blogManager.CreateNewPost();
-                        break;
-
-                    case "8":
-                        blogManager.DeletePost();
-                        break;
-
-                    case "9":
+                    case "6":
                         blogManager.ManageBlog();
                         break;
 
-                    case "10":
+                    // Posts
+
+                    //case "5":
+                    //    blogManager.DisplayAllPost();
+                    //    break;           
+
+                    //case "7":
+                    //    blogManager.CreateNewPost();
+                    //    break;
+
+                    //case "8":
+                    //    blogManager.DeletePost();
+                    //    break;
+
+                    
+
+                    case "7":
                         if (loggedIn)
                         {
                             // Logout
